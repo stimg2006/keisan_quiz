@@ -461,21 +461,15 @@ function updateThemeByOperation(type) {
   }
 }
 
-function updateQuestionTextSize(a, b) {
-  const digitCount = String(Math.abs(a)).length + String(Math.abs(b)).length;
+function updateQuestionTextSize() {
   questionText.classList.remove("long", "xlong");
-  if (digitCount >= 6) {
-    questionText.classList.add("xlong");
-  } else if (digitCount >= 5) {
-    questionText.classList.add("long");
-  }
 }
 
 function renderQuestion() {
   const { a, b, op } = state.currentQuestion;
   updateThemeByOperation(op.type);
   questionText.textContent = `${a} ${getOperationSymbol(op.type)} ${b} = ?`;
-  updateQuestionTextSize(a, b);
+  updateQuestionTextSize();
   opLabel.textContent = op.text;
   progressText.textContent = `${state.questionIndex}/${QUESTIONS_PER_ROUND}`;
   correctCountText.textContent = `せいかい: ${state.score}`;
@@ -2006,6 +2000,11 @@ window.addEventListener(
 window.addEventListener("mouseleave", resetEyes);
 
 setCanvasStyle();
+if (modeSelect?.value && modeConfigs[modeSelect.value]) {
+  state.mode = modeSelect.value;
+} else {
+  modeSelect.value = state.mode;
+}
 nextQuestion();
 
 if ("serviceWorker" in navigator) {
