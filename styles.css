@@ -567,4 +567,27 @@ body {
     font-size: 26px;
     padding: 8px 10px;
   }
+
+  .quiz-area {
+    gap: 10px;
+  }
+
+  .keypad {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .keypad-display {
+    font-size: 34px;
+    min-height: 48px;
+  }
+
+  .key-grid {
+    gap: 6px;
+  }
+
+  .key-btn {
+    padding: 10px;
+    font-size: 24px;
+  }
 }

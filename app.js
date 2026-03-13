@@ -1784,6 +1784,7 @@ function toggleInputMode() {
   const keypadMode = state.inputMode === "keypad";
   canvasWrap.classList.toggle("hidden", keypadMode);
   keypadSection.classList.toggle("hidden", !keypadMode);
+  recognizedPreview.classList.toggle("hidden", keypadMode);
   toggleInputBtn.textContent = keypadMode ? "てがき" : "123";
   retryRecognizeBtn.classList.toggle("hidden", keypadMode);
   retryHint.classList.toggle("hidden", keypadMode);
