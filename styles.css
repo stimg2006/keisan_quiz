@@ -573,21 +573,31 @@ body {
   }
 
   .keypad {
-    padding: 8px;
-    gap: 6px;
+    padding: 5px;
+    gap: 3px;
   }
 
   .keypad-display {
-    font-size: 34px;
-    min-height: 48px;
+    font-size: 24px;
+    min-height: 30px;
+    border-radius: 8px;
   }
 
   .key-grid {
-    gap: 6px;
+    gap: 3px;
   }
 
   .key-btn {
-    padding: 10px;
-    font-size: 24px;
+    padding: 4px;
+    min-height: 50px;
+    font-size: 16px;
+    line-height: 1;
+    border-radius: 7px;
+  }
+
+  .keypad-back-btn {
+    margin-bottom: 0;
+    padding: 4px 9px;
+    font-size: 9px;
   }
 }
