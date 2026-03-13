@@ -1,0 +1,23 @@
+{
+  "name": "けいさんクイズ",
+  "short_name": "けいさん",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#161827",
+  "theme_color": "#ec673f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

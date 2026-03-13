@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ec673f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="けいさんクイズ" />
+    <title>けいさんクイズ</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="./app-icon.svg" />
+    <link rel="apple-touch-icon" href="./app-icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  </head>
+  <body>
+    <main class="app app-orange" id="appRoot">
+      <section class="character">
+        <div class="eyes">
+          <div class="eye"><span class="pupil"></span></div>
+          <div class="eye"><span class="pupil"></span></div>
+        </div>
+        <div class="smile">◡</div>
+      </section>
+
+      <section class="score-board-simple" aria-label="せいせき">
+        <div id="correctCountText" class="score-board-item">せいかい: 0</div>
+        <div id="wrongCountText" class="score-board-item">まちがい: 0</div>
+      </section>
+
+      <section class="quiz-area">
+        <div class="operation-pill" id="opLabel">たしざん</div>
+        <h1 class="question" id="questionText">6 + 2 = ?</h1>
+
+        <div class="canvas-wrap">
+          <button id="clearCanvasBtn" class="small-chip">けす</button>
+          <button id="toggleInputBtn" class="small-chip small-chip-right">123</button>
+          <canvas id="drawCanvas" width="320" height="150" aria-label="数字をかく"></canvas>
+        </div>
+
+        <div id="recognizedPreview" class="recognized-preview">-</div>
+        <button id="retryRecognizeBtn" class="retry-recognize-btn">もういっかい</button>
+        <p id="retryHint" class="retry-hint hidden"></p>
+        <div id="resultMark" class="result-mark" aria-live="polite"></div>
+
+        <button id="answerBtn" class="answer-btn">こたえる</button>
+
+        <section id="keypadSection" class="keypad hidden" aria-label="テンキー入力">
+          <button id="backToDrawBtn" class="small-chip keypad-back-btn">てがきにもどる</button>
+          <div class="keypad-display" id="keypadDisplay">-</div>
+          <div class="key-grid">
+            <button class="key-btn" data-key="1">1</button>
+            <button class="key-btn" data-key="2">2</button>
+            <button class="key-btn" data-key="3">3</button>
+            <button class="key-btn" data-key="4">4</button>
+            <button class="key-btn" data-key="5">5</button>
+            <button class="key-btn" data-key="6">6</button>
+            <button class="key-btn" data-key="7">7</button>
+            <button class="key-btn" data-key="8">8</button>
+            <button class="key-btn" data-key="9">9</button>
+            <button class="key-btn key-action" data-key="back">⌫</button>
+            <button class="key-btn" data-key="0">0</button>
+            <button class="key-btn key-action" data-key="ok">OK</button>
+          </div>
+        </section>
+      </section>
+
+      <footer class="bottom-bar">
+        <label class="mode-select-wrap">
+          <span>もんだい</span>
+          <select id="modeSelect">
+            <option value="kinder">ようちえん</option>
+            <option value="g1a">1ねんせい①</option>
+            <option value="g1b">1ねんせい②</option>
+            <option value="g2a">2ねんせい①</option>
+          </select>
+        </label>
+        <div id="progressText" class="progress">1/10</div>
+        <div id="scoreText" class="score">⭐ 0</div>
+      </footer>
+    </main>
+
+    <section id="resultOverlay" class="result-overlay hidden" aria-live="polite">
+      <div id="fireworksContainer" class="fireworks-container" aria-hidden="true"></div>
+      <div class="result-card">
+        <h2 id="resultTitle">おわり！</h2>
+        <p id="resultScoreText" class="result-score-text">10もんちゅう 0てん</p>
+        <p id="resultMessage" class="result-message">おつかれさま！</p>
+        <h3 class="result-history-title">これまでの きろく</h3>
+        <ul id="resultHistoryList" class="result-history-list"></ul>
+        <button id="playAgainBtn" class="answer-btn">もういちど あそぶ</button>
+      </div>
+    </section>
+
+    <section id="wrongAnswerOverlay" class="wrong-answer-overlay hidden" aria-live="polite">
+      <div class="wrong-answer-card">
+        <h3 class="wrong-answer-title">ざんねん！</h3>
+        <p id="wrongAnswerText" class="wrong-answer-text">こたえ 0</p>
+        <button id="wrongAnswerNextBtn" class="answer-btn">つぎへ</button>
+      </div>
+    </section>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
