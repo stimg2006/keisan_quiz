@@ -1,11 +1,14 @@
-const CACHE_NAME = "keisan-quiz-v2";
+const CACHE_NAME = "keisan-quiz-v3";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.json",
-  "./app-icon.svg"
+  "./app-icon.svg",
+  "./app-icon-192.png",
+  "./app-icon-512.png",
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,7 +41,10 @@ self.addEventListener("fetch", (event) => {
       requestUrl.pathname.endsWith("/styles.css") ||
       requestUrl.pathname.endsWith("/app.js") ||
       requestUrl.pathname.endsWith("/manifest.json") ||
-      requestUrl.pathname.endsWith("/app-icon.svg"));
+      requestUrl.pathname.endsWith("/app-icon.svg") ||
+      requestUrl.pathname.endsWith("/app-icon-192.png") ||
+      requestUrl.pathname.endsWith("/app-icon-512.png") ||
+      requestUrl.pathname.endsWith("/apple-touch-icon.png"));
 
   if (isCoreAsset) {
     event.respondWith(
