@@ -102,11 +102,12 @@ body {
 
 .operation-pill {
   justify-self: center;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 17px;
   background: var(--bg-soft);
+  margin-top: 6px;
 }
 
 .question {

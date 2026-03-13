@@ -91,6 +91,7 @@ const state = {
   roundZeroAnswerCount: 0,
   lastRoundOpType: "",
   lastRoundPatternKey: "",
+  pauseRecognitionUntilDraw: false,
   roundFinished: false,
   waitingWrongConfirm: false
 };
@@ -406,22 +407,26 @@ function renderQuestion() {
   wrongCountText.textContent = `まちがい: ${state.wrongScore}`;
 }
 
-function resetInput() {
+function resetInput(options = {}) {
+  const { preserveRecognitionPreview = false } = options;
   state.typedAnswer = "";
   bumpRecognitionSession();
   resetRecognitionOptions();
   state.waitingWrongConfirm = false;
   wrongAnswerOverlay.classList.add("hidden");
   clearRetryHint();
-  recognizedPreview.textContent = "-";
+  if (!preserveRecognitionPreview) {
+    recognizedPreview.textContent = "-";
+  }
   keypadDisplay.textContent = "-";
   clearCanvas();
 }
 
-function nextQuestion() {
+function nextQuestion(options = {}) {
+  const { preserveRecognitionPreview = false } = options;
   createQuestion();
   renderQuestion();
-  resetInput();
+  resetInput({ preserveRecognitionPreview });
 }
 
 function setCanvasStyle() {
@@ -458,6 +463,7 @@ function getCanvasPos(event) {
 
 function startDraw(event) {
   if (state.inputMode !== "draw") return;
+  state.pauseRecognitionUntilDraw = false;
   if (state.recognitionTimer) {
     clearTimeout(state.recognitionTimer);
     state.recognitionTimer = null;
@@ -508,6 +514,7 @@ function endDraw() {
 
 function scheduleRecognition() {
   if (state.inputMode !== "draw") return;
+  if (state.pauseRecognitionUntilDraw) return;
   if (state.recognitionTimer) {
     clearTimeout(state.recognitionTimer);
   }
@@ -1436,6 +1443,7 @@ function updateRecognitionPreview(rawText, digitText) {
 
 async function recognizeDigit(expectedAnswer = null) {
   if (state.inputMode !== "draw") return null;
+  if (state.pauseRecognitionUntilDraw) return null;
   if (state.recognitionBusy) return null;
 
   const sessionIdAtStart = state.recognitionSessionId;
@@ -1589,7 +1597,8 @@ function showRoundResult() {
   resultOverlay.classList.remove("hidden");
 }
 
-function startNewRound() {
+function startNewRound(options = {}) {
+  const { preserveRecognitionPreview = false } = options;
   state.roundFinished = false;
   state.waitingWrongConfirm = false;
   state.questionIndex = 1;
@@ -1600,7 +1609,7 @@ function startNewRound() {
   clearFireworks();
   resetRoundQuestionControls();
   setAnswerButtonBusy(false);
-  nextQuestion();
+  nextQuestion({ preserveRecognitionPreview });
 }
 
 function proceedToNextQuestion() {
@@ -1854,8 +1863,15 @@ function resetEyes() {
 }
 
 modeSelect.addEventListener("change", () => {
+  state.pauseRecognitionUntilDraw = true;
+  if (state.recognitionTimer) {
+    clearTimeout(state.recognitionTimer);
+    state.recognitionTimer = null;
+  }
+  bumpRecognitionSession();
   state.mode = modeSelect.value;
-  startNewRound();
+  // モード切替時は認識表示を触らず、実際に書いたときだけ更新する
+  startNewRound({ preserveRecognitionPreview: true });
 });
 
 answerBtn.addEventListener("click", checkAnswer);
