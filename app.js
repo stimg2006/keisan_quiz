@@ -19,18 +19,17 @@ const modeConfigs = {
   g1b: {
     label: "1ねんせい②",
     operations: [
-      { type: "add", maxA: 50, maxB: 50, text: "たしざん" },
-      { type: "sub", maxA: 50, maxB: 50, text: "ひきざん" },
-      { type: "mul", maxA: 12, maxB: 12, text: "かけざん" }
+      { type: "add", maxA: 99, maxB: 99, text: "たしざん" },
+      { type: "sub", maxA: 99, maxB: 99, text: "ひきざん" },
+      { type: "mul", maxA: 9, maxB: 9, text: "かけざん" }
     ]
   },
   g2a: {
     label: "2ねんせい①",
     operations: [
-      { type: "add", maxA: 99, maxB: 99, text: "たしざん" },
-      { type: "sub", maxA: 99, maxB: 99, text: "ひきざん" },
-      { type: "mul", maxA: 9, maxB: 9, text: "かけざん" },
-      { type: "div", maxA: 9, maxB: 9, text: "わりざん" }
+      { type: "add", maxA: 50, maxB: 50, text: "たしざん" },
+      { type: "sub", maxA: 50, maxB: 50, text: "ひきざん" },
+      { type: "mul", maxA: 12, maxB: 12, text: "かけざん" }
     ]
   }
 };
@@ -148,6 +147,103 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function pickOne(list) {
+  return list[randInt(0, list.length - 1)];
+}
+
+function createG2Question(op) {
+  let a = 0;
+  let b = 0;
+  let answer = 0;
+
+  if (op.type === "add") {
+    const pattern = pickOne(["1+1to2", "1+2", "2+1"]);
+    if (pattern === "1+1to2") {
+      a = randInt(1, 9);
+      b = randInt(Math.max(1, 10 - a), 9);
+    } else if (pattern === "1+2") {
+      a = randInt(1, 9);
+      b = randInt(10, 99);
+    } else {
+      a = randInt(10, 99);
+      b = randInt(1, 9);
+    }
+    answer = a + b;
+  } else if (op.type === "sub") {
+    const pattern = pickOne(["2-1", "2-2", "1-1"]);
+    if (pattern === "2-1") {
+      a = randInt(10, 99);
+      b = randInt(1, 9);
+    } else if (pattern === "2-2") {
+      a = randInt(10, 99);
+      b = randInt(10, 99);
+      if (b > a) {
+        [a, b] = [b, a];
+      }
+    } else {
+      // 1桁-1桁: どちらも0を含まず、少なくとも片方が5以上
+      a = randInt(5, 9);
+      b = randInt(1, 9);
+      if (b > a) {
+        [a, b] = [b, a];
+      }
+    }
+    answer = a - b;
+  } else if (op.type === "mul") {
+    const pattern = pickOne(["1x1", "2x1or2", "1or2x2"]);
+    if (pattern === "1x1") {
+      a = randInt(1, 9);
+      b = randInt(1, 9);
+    } else if (pattern === "2x1or2") {
+      a = randInt(10, 99);
+      b = randInt(1, 2);
+    } else {
+      a = randInt(1, 2);
+      b = randInt(10, 99);
+    }
+    answer = a * b;
+  }
+
+  return { a, b, answer, op };
+}
+
+function isValidG2Question(question) {
+  if (!question || !question.op) return false;
+  const { a, b, op } = question;
+  if (typeof a !== "number" || typeof b !== "number") return false;
+
+  if (op.type === "add") {
+    const isOneDigit = (n) => n >= 1 && n <= 9;
+    const isTwoDigit = (n) => n >= 10 && n <= 99;
+    const patternA = isOneDigit(a) && isOneDigit(b) && a + b >= 10;
+    const patternB = isOneDigit(a) && isTwoDigit(b);
+    const patternC = isTwoDigit(a) && isOneDigit(b);
+    return patternA || patternB || patternC;
+  }
+
+  if (op.type === "sub") {
+    if (a < b) return false;
+    const isOneDigit = (n) => n >= 1 && n <= 9;
+    const isTwoDigit = (n) => n >= 10 && n <= 99;
+    const patternA = isTwoDigit(a) && isOneDigit(b);
+    const patternB = isTwoDigit(a) && isTwoDigit(b);
+    const patternC = isOneDigit(a) && isOneDigit(b) && (a >= 5 || b >= 5);
+    return patternA || patternB || patternC;
+  }
+
+  if (op.type === "mul") {
+    const isOneDigit = (n) => n >= 1 && n <= 9;
+    const isTwoDigit = (n) => n >= 10 && n <= 99;
+    const isOneOrTwo = (n) => n === 1 || n === 2;
+    const patternA = isOneDigit(a) && isOneDigit(b);
+    const patternB = isTwoDigit(a) && isOneOrTwo(b);
+    const patternC = isOneOrTwo(a) && isTwoDigit(b);
+    return patternA || patternB || patternC;
+  }
+
+  return false;
+}
+
 function getOperationSymbol(type) {
   if (type === "add") return "+";
   if (type === "sub") return "-";
@@ -159,6 +255,20 @@ function getOperationSymbol(type) {
 function createQuestion() {
   const config = modeConfigs[state.mode];
   const op = config.operations[randInt(0, config.operations.length - 1)];
+
+  if (state.mode === "g1b") {
+    // 念のため最終バリデーションを通し、条件外問題の表示を防ぐ
+    for (let i = 0; i < 20; i += 1) {
+      const candidate = createG2Question(op);
+      if (isValidG2Question(candidate)) {
+        state.currentQuestion = candidate;
+        return;
+      }
+    }
+    state.currentQuestion = createG2Question(op);
+    return;
+  }
+
   let a = 0;
   let b = 0;
   let answer = 0;
