@@ -86,6 +86,11 @@ const state = {
   recognitionOptionIndex: 0,
   recognitionLoopCount: 0,
   retryHintTimer: null,
+  fireworkTimers: [],
+  roundAskedQuestionKeys: new Set(),
+  roundZeroAnswerCount: 0,
+  lastRoundOpType: "",
+  lastRoundPatternKey: "",
   roundFinished: false,
   waitingWrongConfirm: false
 };
@@ -169,6 +174,7 @@ function createG2Question(op) {
       b = randInt(1, 9);
     }
     answer = a + b;
+    return { a, b, answer, op, patternKey: `add:${pattern}` };
   } else if (op.type === "sub") {
     const pattern = pickOne(["2-1", "2-2", "1-1"]);
     if (pattern === "2-1") {
@@ -189,6 +195,7 @@ function createG2Question(op) {
       }
     }
     answer = a - b;
+    return { a, b, answer, op, patternKey: `sub:${pattern}` };
   } else if (op.type === "mul") {
     const pattern = pickOne(["1x1", "2x1or2", "1or2x2"]);
     if (pattern === "1x1") {
@@ -202,9 +209,10 @@ function createG2Question(op) {
       b = randInt(10, 99);
     }
     answer = a * b;
+    return { a, b, answer, op, patternKey: `mul:${pattern}` };
   }
 
-  return { a, b, answer, op };
+  return { a, b, answer, op, patternKey: `${op.type}:other` };
 }
 
 function isValidG2Question(question) {
@@ -252,23 +260,11 @@ function getOperationSymbol(type) {
   return "?";
 }
 
-function createQuestion() {
-  const config = modeConfigs[state.mode];
-  const op = config.operations[randInt(0, config.operations.length - 1)];
+function countDigits(n) {
+  return Math.abs(Number(n)).toString().length;
+}
 
-  if (state.mode === "g1b") {
-    // 念のため最終バリデーションを通し、条件外問題の表示を防ぐ
-    for (let i = 0; i < 20; i += 1) {
-      const candidate = createG2Question(op);
-      if (isValidG2Question(candidate)) {
-        state.currentQuestion = candidate;
-        return;
-      }
-    }
-    state.currentQuestion = createG2Question(op);
-    return;
-  }
-
+function createStandardQuestion(op) {
   let a = 0;
   let b = 0;
   let answer = 0;
@@ -291,7 +287,101 @@ function createQuestion() {
     a = b * answer;
   }
 
-  state.currentQuestion = { a, b, answer, op };
+  return { a, b, answer, op, patternKey: `${op.type}:${countDigits(a)}-${countDigits(b)}` };
+}
+
+function buildQuestionUniqueKey(question) {
+  const type = question?.op?.type || "";
+  const a = Number(question?.a ?? 0);
+  const b = Number(question?.b ?? 0);
+  if (type === "add" || type === "mul") {
+    const left = Math.min(a, b);
+    const right = Math.max(a, b);
+    return `${type}:${left}:${right}`;
+  }
+  return `${type}:${a}:${b}`;
+}
+
+function resetRoundQuestionControls() {
+  state.roundAskedQuestionKeys = new Set();
+  state.roundZeroAnswerCount = 0;
+  state.lastRoundOpType = "";
+  state.lastRoundPatternKey = "";
+}
+
+function isQuestionAllowedInRound(question, config, attempt) {
+  const uniqueKey = buildQuestionUniqueKey(question);
+  if (state.roundAskedQuestionKeys.has(uniqueKey)) {
+    return false;
+  }
+
+  if (question.answer === 0 && state.roundZeroAnswerCount >= 1) {
+    return false;
+  }
+
+  const strictAlternation = attempt < 180;
+  if (strictAlternation && config.operations.length > 1 && state.lastRoundOpType) {
+    if (question.op.type === state.lastRoundOpType) {
+      return false;
+    }
+  }
+
+  if (strictAlternation && state.lastRoundPatternKey && question.patternKey) {
+    if (question.patternKey === state.lastRoundPatternKey) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function commitRoundQuestion(question) {
+  const uniqueKey = buildQuestionUniqueKey(question);
+  state.roundAskedQuestionKeys.add(uniqueKey);
+  if (question.answer === 0) {
+    state.roundZeroAnswerCount += 1;
+  }
+  state.lastRoundOpType = question.op.type;
+  state.lastRoundPatternKey = question.patternKey || "";
+}
+
+function createQuestion() {
+  const config = modeConfigs[state.mode];
+  for (let attempt = 0; attempt < 320; attempt += 1) {
+    let opCandidates = config.operations;
+    if (config.operations.length > 1 && state.lastRoundOpType && attempt < 180) {
+      const filtered = config.operations.filter((opItem) => opItem.type !== state.lastRoundOpType);
+      if (filtered.length > 0) {
+        opCandidates = filtered;
+      }
+    }
+
+    const op = opCandidates[randInt(0, opCandidates.length - 1)];
+    let candidate;
+    if (state.mode === "g1b") {
+      candidate = createG2Question(op);
+      if (!isValidG2Question(candidate)) {
+        continue;
+      }
+    } else {
+      candidate = createStandardQuestion(op);
+    }
+
+    if (!isQuestionAllowedInRound(candidate, config, attempt)) {
+      continue;
+    }
+
+    commitRoundQuestion(candidate);
+    state.currentQuestion = candidate;
+    return;
+  }
+
+  // まれに条件が厳しすぎて失敗した場合の最終フォールバック
+  const fallbackOp = config.operations[randInt(0, config.operations.length - 1)];
+  const fallbackQuestion =
+    state.mode === "g1b" ? createG2Question(fallbackOp) : createStandardQuestion(fallbackOp);
+  commitRoundQuestion(fallbackQuestion);
+  state.currentQuestion = fallbackQuestion;
 }
 
 function updateThemeByOperation(type) {
@@ -1508,6 +1598,7 @@ function startNewRound() {
   resultOverlay.classList.add("hidden");
   wrongAnswerOverlay.classList.add("hidden");
   clearFireworks();
+  resetRoundQuestionControls();
   setAnswerButtonBusy(false);
   nextQuestion();
 }
@@ -1522,25 +1613,38 @@ function proceedToNextQuestion() {
 }
 
 function clearFireworks() {
+  state.fireworkTimers.forEach((timerId) => clearTimeout(timerId));
+  state.fireworkTimers = [];
   fireworksContainer.innerHTML = "";
 }
 
 function triggerFireworks() {
   clearFireworks();
   const colors = ["#ff6b6b", "#ffd93d", "#6bcB77", "#4d96ff", "#c77dff", "#ff9f1c"];
-  const particleCount = 120;
-  for (let i = 0; i < particleCount; i++) {
-    const piece = document.createElement("span");
-    piece.className = "confetti";
-    piece.style.left = `${Math.random() * 100}%`;
-    piece.style.top = `${-10 - Math.random() * 30}px`;
-    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-    piece.style.animationDelay = `${Math.random() * 400}ms`;
-    piece.style.animationDuration = `${900 + Math.random() * 1200}ms`;
-    fireworksContainer.appendChild(piece);
-    setTimeout(() => {
-      piece.remove();
-    }, 2600);
+  const burstCount = 3;
+  const particlesPerBurst = 90;
+  const burstIntervalMs = 320;
+
+  const spawnBurst = () => {
+    for (let i = 0; i < particlesPerBurst; i++) {
+      const piece = document.createElement("span");
+      piece.className = "confetti";
+      piece.style.left = `${Math.random() * 100}%`;
+      piece.style.top = `${-10 - Math.random() * 30}px`;
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDelay = `${Math.random() * 300}ms`;
+      piece.style.animationDuration = `${1100 + Math.random() * 1400}ms`;
+      fireworksContainer.appendChild(piece);
+      const removeId = setTimeout(() => {
+        piece.remove();
+      }, 3200);
+      state.fireworkTimers.push(removeId);
+    }
+  };
+
+  for (let burst = 0; burst < burstCount; burst += 1) {
+    const timerId = setTimeout(spawnBurst, burst * burstIntervalMs);
+    state.fireworkTimers.push(timerId);
   }
 }
 

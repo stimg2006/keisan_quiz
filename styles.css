@@ -418,6 +418,7 @@ body {
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 2;
 }
 
 .confetti {
@@ -448,6 +449,8 @@ body {
   padding: 18px 16px 16px;
   display: grid;
   gap: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 .result-card h2 {
@@ -522,5 +525,10 @@ body {
     padding-right: max(18px, env(safe-area-inset-right));
     padding-bottom: max(14px, env(safe-area-inset-bottom));
     padding-left: max(18px, env(safe-area-inset-left));
+  }
+
+  .confetti {
+    width: 12px;
+    height: 20px;
   }
 }
