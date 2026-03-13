@@ -46,13 +46,6 @@
           <canvas id="drawCanvas" width="320" height="150" aria-label="数字をかく"></canvas>
         </div>
 
-        <div id="recognizedPreview" class="recognized-preview">-</div>
-        <button id="retryRecognizeBtn" class="retry-recognize-btn">もういっかい</button>
-        <p id="retryHint" class="retry-hint hidden"></p>
-        <div id="resultMark" class="result-mark" aria-live="polite"></div>
-
-        <button id="answerBtn" class="answer-btn">こたえる</button>
-
         <section id="keypadSection" class="keypad hidden" aria-label="テンキー入力">
           <button id="backToDrawBtn" class="small-chip keypad-back-btn">てがきにもどる</button>
           <div class="keypad-display" id="keypadDisplay">-</div>
@@ -71,6 +64,13 @@
             <button class="key-btn key-action" data-key="ok">OK</button>
           </div>
         </section>
+
+        <div id="recognizedPreview" class="recognized-preview">-</div>
+        <button id="retryRecognizeBtn" class="retry-recognize-btn">もういっかい</button>
+        <p id="retryHint" class="retry-hint hidden"></p>
+        <div id="resultMark" class="result-mark" aria-live="polite"></div>
+
+        <button id="answerBtn" class="answer-btn">こたえる</button>
       </section>
 
       <footer class="bottom-bar">
@@ -84,7 +84,6 @@
           </select>
         </label>
         <div id="progressText" class="progress">1/10</div>
-        <div id="scoreText" class="score">⭐ 0</div>
       </footer>
     </main>
 

@@ -40,11 +40,11 @@ const opLabel = document.getElementById("opLabel");
 const modeSelect = document.getElementById("modeSelect");
 const answerBtn = document.getElementById("answerBtn");
 const progressText = document.getElementById("progressText");
-const scoreText = document.getElementById("scoreText");
 const correctCountText = document.getElementById("correctCountText");
 const wrongCountText = document.getElementById("wrongCountText");
 const clearCanvasBtn = document.getElementById("clearCanvasBtn");
 const toggleInputBtn = document.getElementById("toggleInputBtn");
+const canvasWrap = document.querySelector(".canvas-wrap");
 const recognizedPreview = document.getElementById("recognizedPreview");
 const retryRecognizeBtn = document.getElementById("retryRecognizeBtn");
 const retryHint = document.getElementById("retryHint");
@@ -157,100 +157,166 @@ function pickOne(list) {
   return list[randInt(0, list.length - 1)];
 }
 
+function randomByDigits(digits) {
+  const min = 10 ** (digits - 1);
+  const max = 10 ** digits - 1;
+  return randInt(min, max);
+}
+
+function hasCarryOnes(a, b) {
+  return (a % 10) + (b % 10) >= 10;
+}
+
+function hasBorrowOnes(a, b) {
+  return a % 10 < b % 10;
+}
+
+function createKinderQuestion(op) {
+  let a = 0;
+  let b = 0;
+  let answer = 0;
+  let patternKey = `${op.type}:kinder`;
+
+  if (op.type === "add") {
+    // 幼稚園: 1桁 + 1桁（繰り上がりなし）
+    a = randInt(1, 9);
+    b = randInt(1, Math.max(1, Math.min(9, 10 - a)));
+    answer = a + b;
+    patternKey = "add:1+1-no-carry";
+  } else if (op.type === "sub") {
+    // 幼稚園: 10までの簡単な引き算
+    a = randInt(1, 10);
+    b = randInt(1, Math.min(a, 9));
+    answer = a - b;
+    patternKey = "sub:to-10";
+  } else {
+    a = randInt(1, 9);
+    b = randInt(1, 9);
+    answer = a + b;
+    patternKey = "add:fallback";
+  }
+
+  return { a, b, answer, op, patternKey };
+}
+
+function createG1aQuestion(op) {
+  let a = 0;
+  let b = 0;
+  let answer = 0;
+  let patternKey = `${op.type}:g1a`;
+
+  if (op.type === "add") {
+    // 小1前半: 1桁 + 1桁
+    a = randInt(1, 9);
+    b = randInt(1, 9);
+    answer = a + b;
+    patternKey = "add:1+1";
+  } else if (op.type === "sub") {
+    // 小1前半: 10までの引き算
+    a = randInt(1, 10);
+    b = randInt(1, Math.min(a, 9));
+    answer = a - b;
+    patternKey = "sub:to-10";
+  } else {
+    a = randInt(1, 9);
+    b = randInt(1, 9);
+    answer = a + b;
+    patternKey = "add:fallback";
+  }
+
+  return { a, b, answer, op, patternKey };
+}
+
+function createG1bQuestion(op) {
+  let a = 0;
+  let b = 0;
+  let answer = 0;
+  let patternKey = `${op.type}:g1b`;
+
+  if (op.type === "add") {
+    const pattern = pickOne(["2+1", "2+2-carry"]);
+    if (pattern === "2+1") {
+      a = randomByDigits(2);
+      b = randInt(1, 9);
+    } else {
+      for (let i = 0; i < 60; i += 1) {
+        const ca = randomByDigits(2);
+        const cb = randomByDigits(2);
+        if (hasCarryOnes(ca, cb)) {
+          a = ca;
+          b = cb;
+          break;
+        }
+      }
+      if (!a) {
+        a = randomByDigits(2);
+        b = randomByDigits(2);
+      }
+    }
+    answer = a + b;
+    patternKey = `add:${pattern}`;
+  } else if (op.type === "sub") {
+    const pattern = pickOne(["2-1", "2-2-borrow"]);
+    if (pattern === "2-1") {
+      a = randomByDigits(2);
+      b = randInt(1, 9);
+    } else {
+      for (let i = 0; i < 80; i += 1) {
+        const ca = randomByDigits(2);
+        const cb = randomByDigits(2);
+        if (ca >= cb && hasBorrowOnes(ca, cb)) {
+          a = ca;
+          b = cb;
+          break;
+        }
+      }
+      if (!a) {
+        a = randomByDigits(2);
+        b = randInt(10, a);
+      }
+    }
+    if (b > a) [a, b] = [b, a];
+    answer = a - b;
+    patternKey = `sub:${pattern}`;
+  } else if (op.type === "mul") {
+    // 小1後半でも軽いかけ算練習を残す
+    a = randInt(1, 9);
+    b = randInt(1, 9);
+    answer = a * b;
+    patternKey = "mul:1x1";
+  }
+
+  return { a, b, answer, op, patternKey };
+}
+
 function createG2Question(op) {
   let a = 0;
   let b = 0;
   let answer = 0;
+  let patternKey = `${op.type}:g2a`;
 
   if (op.type === "add") {
-    const pattern = pickOne(["1+1to2", "1+2", "2+1"]);
-    if (pattern === "1+1to2") {
-      a = randInt(1, 9);
-      b = randInt(Math.max(1, 10 - a), 9);
-    } else if (pattern === "1+2") {
-      a = randInt(1, 9);
-      b = randInt(10, 99);
-    } else {
-      a = randInt(10, 99);
-      b = randInt(1, 9);
-    }
+    const pattern = pickOne(["2+2", "3+2"]);
+    a = pattern === "2+2" ? randomByDigits(2) : randInt(100, 200);
+    b = randomByDigits(2);
     answer = a + b;
-    return { a, b, answer, op, patternKey: `add:${pattern}` };
+    patternKey = `add:${pattern}`;
   } else if (op.type === "sub") {
-    const pattern = pickOne(["2-1", "2-2", "1-1"]);
-    if (pattern === "2-1") {
-      a = randInt(10, 99);
-      b = randInt(1, 9);
-    } else if (pattern === "2-2") {
-      a = randInt(10, 99);
-      b = randInt(10, 99);
-      if (b > a) {
-        [a, b] = [b, a];
-      }
-    } else {
-      // 1桁-1桁: どちらも0を含まず、少なくとも片方が5以上
-      a = randInt(5, 9);
-      b = randInt(1, 9);
-      if (b > a) {
-        [a, b] = [b, a];
-      }
-    }
+    const pattern = pickOne(["2-2", "3-2"]);
+    a = pattern === "2-2" ? randomByDigits(2) : randInt(100, 200);
+    b = randomByDigits(2);
+    if (b > a) [a, b] = [b, a];
     answer = a - b;
-    return { a, b, answer, op, patternKey: `sub:${pattern}` };
+    patternKey = `sub:${pattern}`;
   } else if (op.type === "mul") {
-    const pattern = pickOne(["1x1", "2x1or2", "1or2x2"]);
-    if (pattern === "1x1") {
-      a = randInt(1, 9);
-      b = randInt(1, 9);
-    } else if (pattern === "2x1or2") {
-      a = randInt(10, 99);
-      b = randInt(1, 2);
-    } else {
-      a = randInt(1, 2);
-      b = randInt(10, 99);
-    }
+    // 小2: 九九
+    a = randInt(1, 9);
+    b = randInt(1, 9);
     answer = a * b;
-    return { a, b, answer, op, patternKey: `mul:${pattern}` };
+    patternKey = "mul:kuku";
   }
 
-  return { a, b, answer, op, patternKey: `${op.type}:other` };
-}
-
-function isValidG2Question(question) {
-  if (!question || !question.op) return false;
-  const { a, b, op } = question;
-  if (typeof a !== "number" || typeof b !== "number") return false;
-
-  if (op.type === "add") {
-    const isOneDigit = (n) => n >= 1 && n <= 9;
-    const isTwoDigit = (n) => n >= 10 && n <= 99;
-    const patternA = isOneDigit(a) && isOneDigit(b) && a + b >= 10;
-    const patternB = isOneDigit(a) && isTwoDigit(b);
-    const patternC = isTwoDigit(a) && isOneDigit(b);
-    return patternA || patternB || patternC;
-  }
-
-  if (op.type === "sub") {
-    if (a < b) return false;
-    const isOneDigit = (n) => n >= 1 && n <= 9;
-    const isTwoDigit = (n) => n >= 10 && n <= 99;
-    const patternA = isTwoDigit(a) && isOneDigit(b);
-    const patternB = isTwoDigit(a) && isTwoDigit(b);
-    const patternC = isOneDigit(a) && isOneDigit(b) && (a >= 5 || b >= 5);
-    return patternA || patternB || patternC;
-  }
-
-  if (op.type === "mul") {
-    const isOneDigit = (n) => n >= 1 && n <= 9;
-    const isTwoDigit = (n) => n >= 10 && n <= 99;
-    const isOneOrTwo = (n) => n === 1 || n === 2;
-    const patternA = isOneDigit(a) && isOneDigit(b);
-    const patternB = isTwoDigit(a) && isOneOrTwo(b);
-    const patternC = isOneOrTwo(a) && isTwoDigit(b);
-    return patternA || patternB || patternC;
-  }
-
-  return false;
+  return { a, b, answer, op, patternKey };
 }
 
 function getOperationSymbol(type) {
@@ -289,6 +355,14 @@ function createStandardQuestion(op) {
   }
 
   return { a, b, answer, op, patternKey: `${op.type}:${countDigits(a)}-${countDigits(b)}` };
+}
+
+function createQuestionByMode(mode, op) {
+  if (mode === "kinder") return createKinderQuestion(op);
+  if (mode === "g1a") return createG1aQuestion(op);
+  if (mode === "g1b") return createG1bQuestion(op);
+  if (mode === "g2a") return createG2Question(op);
+  return createStandardQuestion(op);
 }
 
 function buildQuestionUniqueKey(question) {
@@ -358,15 +432,7 @@ function createQuestion() {
     }
 
     const op = opCandidates[randInt(0, opCandidates.length - 1)];
-    let candidate;
-    if (state.mode === "g1b") {
-      candidate = createG2Question(op);
-      if (!isValidG2Question(candidate)) {
-        continue;
-      }
-    } else {
-      candidate = createStandardQuestion(op);
-    }
+    const candidate = createQuestionByMode(state.mode, op);
 
     if (!isQuestionAllowedInRound(candidate, config, attempt)) {
       continue;
@@ -379,8 +445,7 @@ function createQuestion() {
 
   // まれに条件が厳しすぎて失敗した場合の最終フォールバック
   const fallbackOp = config.operations[randInt(0, config.operations.length - 1)];
-  const fallbackQuestion =
-    state.mode === "g1b" ? createG2Question(fallbackOp) : createStandardQuestion(fallbackOp);
+  const fallbackQuestion = createQuestionByMode(state.mode, fallbackOp);
   commitRoundQuestion(fallbackQuestion);
   state.currentQuestion = fallbackQuestion;
 }
@@ -396,13 +461,23 @@ function updateThemeByOperation(type) {
   }
 }
 
+function updateQuestionTextSize(a, b) {
+  const digitCount = String(Math.abs(a)).length + String(Math.abs(b)).length;
+  questionText.classList.remove("long", "xlong");
+  if (digitCount >= 6) {
+    questionText.classList.add("xlong");
+  } else if (digitCount >= 5) {
+    questionText.classList.add("long");
+  }
+}
+
 function renderQuestion() {
   const { a, b, op } = state.currentQuestion;
   updateThemeByOperation(op.type);
   questionText.textContent = `${a} ${getOperationSymbol(op.type)} ${b} = ?`;
+  updateQuestionTextSize(a, b);
   opLabel.textContent = op.text;
   progressText.textContent = `${state.questionIndex}/${QUESTIONS_PER_ROUND}`;
-  scoreText.textContent = `⭐ ${state.score}`;
   correctCountText.textContent = `せいかい: ${state.score}`;
   wrongCountText.textContent = `まちがい: ${state.wrongScore}`;
 }
@@ -448,6 +523,11 @@ function clearCanvas() {
   clearRetryHint();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   setCanvasStyle();
+}
+
+function hasInkOnCanvas() {
+  const preprocessed = createPreprocessedCanvas(canvas, 215) ?? canvas;
+  return extractDigitComponents(preprocessed).length > 0;
 }
 
 function getCanvasPos(event) {
@@ -1665,6 +1745,10 @@ async function checkAnswer() {
   if (state.inputMode === "keypad") {
     userAnswer = getTypedValue();
   } else {
+    if (!hasInkOnCanvas()) {
+      recognizedPreview.textContent = "-";
+      return;
+    }
     const displayed = normalizeRecognizedDigits(recognizedPreview.textContent?.trim() || "");
     if (displayed && displayed !== "-") {
       userAnswer = Number(displayed);
@@ -1704,8 +1788,8 @@ async function checkAnswer() {
 function toggleInputMode() {
   state.inputMode = state.inputMode === "draw" ? "keypad" : "draw";
   const keypadMode = state.inputMode === "keypad";
+  canvasWrap.classList.toggle("hidden", keypadMode);
   keypadSection.classList.toggle("hidden", !keypadMode);
-  canvas.style.opacity = keypadMode ? "0.55" : "1";
   toggleInputBtn.textContent = keypadMode ? "てがき" : "123";
   retryRecognizeBtn.classList.toggle("hidden", keypadMode);
   retryHint.classList.toggle("hidden", keypadMode);
@@ -1744,8 +1828,7 @@ async function retryRecognition() {
     return;
   }
 
-  const preHasInk = extractDigitComponents(createPreprocessedCanvas(canvas, 215) ?? canvas).length > 0;
-  if (!preHasInk) {
+  if (!hasInkOnCanvas()) {
     recognizedPreview.textContent = "-";
     return;
   }
