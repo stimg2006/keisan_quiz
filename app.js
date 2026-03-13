@@ -659,10 +659,15 @@ function buildAlternativeOptions(baseText, expectedAnswer = null) {
 }
 
 function generateExhaustiveOptions(baseOptions, expectedAnswer = null, currentText = "") {
+  const expectedLen = Number.isInteger(expectedAnswer)
+    ? String(Math.abs(expectedAnswer)).length
+    : Math.max(1, normalizeRecognizedDigits(currentText).length || 1);
+
   const set = new Set();
   const push = (value) => {
     const normalized = normalizeRecognizedDigits(String(value || "").trim());
     if (!normalized || normalized === "-") return;
+    if (expectedLen >= 2 && normalized.length !== expectedLen) return;
     set.add(normalized);
   };
 
@@ -670,14 +675,10 @@ function generateExhaustiveOptions(baseOptions, expectedAnswer = null, currentTe
   push(currentText);
   if (Number.isInteger(expectedAnswer)) push(String(expectedAnswer));
 
-  const expectedLen = Number.isInteger(expectedAnswer)
-    ? String(Math.abs(expectedAnswer)).length
-    : Math.max(1, normalizeRecognizedDigits(currentText).length || 1);
-
   if (expectedLen <= 1) {
     for (let d = 0; d <= 9; d++) push(String(d));
   } else if (expectedLen === 2) {
-    for (let i = 0; i <= 9; i++) {
+    for (let i = 1; i <= 9; i++) {
       for (let j = 0; j <= 9; j++) {
         push(`${i}${j}`);
       }
@@ -691,7 +692,15 @@ function generateExhaustiveOptions(baseOptions, expectedAnswer = null, currentTe
 
   // 最低10件保証
   if (set.size < 10) {
-    for (let d = 0; d <= 9; d++) push(String(d));
+    if (expectedLen <= 1) {
+      for (let d = 0; d <= 9; d++) push(String(d));
+    } else if (expectedLen === 2) {
+      for (let i = 1; i <= 9 && set.size < 10; i++) {
+        for (let j = 0; j <= 9 && set.size < 10; j++) {
+          push(`${i}${j}`);
+        }
+      }
+    }
   }
 
   const options = Array.from(set);
@@ -1743,8 +1752,13 @@ async function checkAnswer() {
       recognizedPreview.textContent = "-";
       return;
     }
+    const expectedDigitsLength = getExpectedDigitsLength(state.currentQuestion?.answer ?? null);
     const displayed = normalizeRecognizedDigits(recognizedPreview.textContent?.trim() || "");
-    if (displayed && displayed !== "-") {
+    const canUseDisplayed =
+      displayed &&
+      displayed !== "-" &&
+      (!expectedDigitsLength || displayed.length === expectedDigitsLength);
+    if (canUseDisplayed) {
       userAnswer = Number(displayed);
     } else {
       userAnswer = await recognizeDigit(state.currentQuestion?.answer ?? null);
