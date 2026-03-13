@@ -345,20 +345,25 @@ body {
 
 .bottom-bar {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 0.8fr;
+  grid-template-columns: 2.2fr 0.75fr 0.65fr;
   gap: 8px;
   margin-top: 16px;
   align-items: center;
 }
 
 .mode-select-wrap {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
   background: #ffffff26;
   border-radius: 999px;
   padding: 8px 12px;
   font-weight: 700;
+}
+
+.mode-select-wrap span {
+  line-height: 1.1;
 }
 
 .mode-select-wrap select {
@@ -367,6 +372,9 @@ body {
   color: #fff;
   font-weight: 700;
   width: 100%;
+  min-width: 0;
+  font-size: 28px;
+  white-space: nowrap;
   outline: none;
 }
 
@@ -381,6 +389,7 @@ body {
   background: #ffffff26;
   border-radius: 999px;
   padding: 8px 12px;
+  font-size: 30px;
 }
 
 .score-board-simple {
@@ -531,5 +540,30 @@ body {
   .confetti {
     width: 12px;
     height: 20px;
+  }
+
+  .bottom-bar {
+    grid-template-columns: 2.5fr 0.65fr 0.55fr;
+    gap: 7px;
+  }
+
+  .mode-select-wrap {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 8px 10px;
+  }
+
+  .mode-select-wrap span {
+    display: none;
+  }
+
+  .mode-select-wrap select {
+    font-size: 22px;
+  }
+
+  .progress,
+  .score {
+    font-size: 26px;
+    padding: 8px 10px;
   }
 }

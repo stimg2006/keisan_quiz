@@ -508,6 +508,7 @@ function drawMove(event) {
 
 function endDraw() {
   if (state.inputMode !== "draw") return;
+  if (!state.drawing) return;
   state.drawing = false;
   scheduleRecognition();
 }
