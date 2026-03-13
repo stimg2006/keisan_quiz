@@ -715,9 +715,14 @@ function generateExhaustiveOptions(baseOptions, expectedAnswer = null, currentTe
   return options;
 }
 
-function orderOptionsWithCurrentFirst(options, currentText) {
+function orderOptionsWithCurrentFirst(options, currentText, expectedDigitsLength = null) {
   const normalizedCurrent = normalizeRecognizedDigits(currentText || "");
   if (!normalizedCurrent) return options;
+  if (expectedDigitsLength && expectedDigitsLength >= 2) {
+    if (normalizedCurrent.length !== expectedDigitsLength) {
+      return options;
+    }
+  }
   const filtered = options.filter((item) => item !== normalizedCurrent);
   return [normalizedCurrent, ...filtered];
 }
@@ -1609,7 +1614,8 @@ async function recognizeDigit(expectedAnswer = null) {
       expectedAnswer,
       firstDigit
       ),
-      firstDigit
+      firstDigit,
+      expectedDigitsLength
     );
     state.recognitionOptionIndex = 0;
     updateRecognitionPreview(firstDigit, firstDigit);
@@ -1824,13 +1830,15 @@ async function retryRecognition() {
   const currentText = normalizeRecognizedDigits(recognizedPreview.textContent?.trim() || "");
   const fallbackOptions = buildAlternativeOptions(currentText, state.currentQuestion?.answer ?? null);
   if (fallbackOptions.length > 1) {
+    const expectedDigitsLength = getExpectedDigitsLength(state.currentQuestion?.answer ?? null);
     state.recognitionOptions = orderOptionsWithCurrentFirst(
       generateExhaustiveOptions(
         fallbackOptions,
         state.currentQuestion?.answer ?? null,
         currentText
       ),
-      currentText
+      currentText,
+      expectedDigitsLength
     );
     state.recognitionOptionIndex = 1;
     recognizedPreview.textContent = state.recognitionOptions[state.recognitionOptionIndex];
@@ -1854,7 +1862,8 @@ async function retryRecognition() {
       state.currentQuestion?.answer ?? null,
       normalizeRecognizedDigits(recognizedPreview.textContent?.trim() || "")
     ),
-    normalizeRecognizedDigits(recognizedPreview.textContent?.trim() || "")
+    normalizeRecognizedDigits(recognizedPreview.textContent?.trim() || ""),
+    getExpectedDigitsLength(state.currentQuestion?.answer ?? null)
   );
   if (state.recognitionOptions.length > 1) {
     state.recognitionOptionIndex = 1;
