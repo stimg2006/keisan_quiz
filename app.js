@@ -92,6 +92,7 @@ const state = {
   lastRoundOpType: "",
   lastRoundPatternKey: "",
   pauseRecognitionUntilDraw: false,
+  answerSubmitLocked: false,
   roundFinished: false,
   waitingWrongConfirm: false
 };
@@ -327,6 +328,17 @@ function getOperationSymbol(type) {
   return "?";
 }
 
+function computeQuestionAnswer(question) {
+  if (!question || !question.op) return 0;
+  const a = Number(question.a ?? 0);
+  const b = Number(question.b ?? 0);
+  if (question.op.type === "add") return a + b;
+  if (question.op.type === "sub") return a - b;
+  if (question.op.type === "mul") return a * b;
+  if (question.op.type === "div") return b === 0 ? 0 : Math.floor(a / b);
+  return 0;
+}
+
 function countDigits(n) {
   return Math.abs(Number(n)).toString().length;
 }
@@ -467,6 +479,7 @@ function updateQuestionTextSize() {
 
 function renderQuestion() {
   const { a, b, op } = state.currentQuestion;
+  state.currentQuestion.answer = computeQuestionAnswer(state.currentQuestion);
   updateThemeByOperation(op.type);
   questionText.textContent = `${a} ${getOperationSymbol(op.type)} ${b} = ?`;
   updateQuestionTextSize();
@@ -482,6 +495,7 @@ function resetInput(options = {}) {
   bumpRecognitionSession();
   resetRecognitionOptions();
   state.waitingWrongConfirm = false;
+  state.answerSubmitLocked = false;
   wrongAnswerOverlay.classList.add("hidden");
   clearRetryHint();
   if (!preserveRecognitionPreview) {
@@ -1750,12 +1764,15 @@ function triggerFireworks() {
 async function checkAnswer() {
   if (state.roundFinished) return;
   if (state.waitingWrongConfirm) return;
+  if (state.answerSubmitLocked) return;
+  state.answerSubmitLocked = true;
   let userAnswer;
   if (state.inputMode === "keypad") {
     userAnswer = getTypedValue();
   } else {
     if (!hasInkOnCanvas()) {
       recognizedPreview.textContent = "-";
+      state.answerSubmitLocked = false;
       return;
     }
     const expectedDigitsLength = getExpectedDigitsLength(state.currentQuestion?.answer ?? null);
@@ -1773,18 +1790,21 @@ async function checkAnswer() {
 
   if (userAnswer === null || Number.isNaN(userAnswer)) {
     recognizedPreview.textContent = "-";
+    state.answerSubmitLocked = false;
     return;
   }
 
-  const isCorrect = userAnswer === state.currentQuestion.answer;
+  const expectedAnswer = computeQuestionAnswer(state.currentQuestion);
+  state.currentQuestion.answer = expectedAnswer;
+  const isCorrect = userAnswer === expectedAnswer;
   if (isCorrect) {
     state.score += 1;
   } else {
     state.wrongScore += 1;
-    recognizedPreview.textContent = `こたえ ${state.currentQuestion.answer}`;
+    recognizedPreview.textContent = `こたえ ${expectedAnswer}`;
     clearRetryHint();
     state.waitingWrongConfirm = true;
-    wrongAnswerText.textContent = `こたえ ${state.currentQuestion.answer}`;
+    wrongAnswerText.textContent = `こたえ ${expectedAnswer}`;
     wrongAnswerOverlay.classList.remove("hidden");
     answerBtn.disabled = true;
     retryRecognizeBtn.disabled = true;
